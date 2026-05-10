@@ -515,15 +515,53 @@ class NaiveBayesClassifier:
         """)
         
         training_samples = [
-            ("patient found unresponsive cardiac arrest death pronounced dead post-mortem fatal outcome", "Death"),
-            ("patient died following severe adverse reaction fatal", "Death"),
-            ("death reported acute myocardial infarction patient expired hospital mortality", "Death"),
-            ("permanent disability paralysis unable to walk persistent neurological deficit", "Disability"),
-            ("peripheral neuropathy permanent nerve damage disability grade 3", "Disability"),
-            ("patient admitted hospital emergency hospitalization ICU admission ward", "Hospitalization"),
+            # DEATH cases
+            ("patient found unresponsive cardiac arrest death pronounced dead post-mortem fatal outcome brainstem herniation", "Death"),
+            ("patient died following severe adverse reaction death occurred respiratory failure fatal", "Death"),
+            ("death reported acute myocardial infarction patient expired hospital mortality fatal outcome", "Death"),
+            ("patient pronounced dead on arrival CPR unsuccessful fatal adverse event death", "Death"),
+            ("terminal outcome patient succumbed complications death certificate issued fatal", "Death"),
+            ("patient passed away intracranial haemorrhage brain death fatal drug reaction", "Death"),
+            ("sudden death cardiac arrhythmia patient found dead home fatal outcome", "Death"),
+            ("death due to anaphylaxis airway obstruction patient expired emergency", "Death"),
+            ("fatal hepatic failure liver failure death patient did not survive", "Death"),
+            ("patient mortality sepsis multiorgan failure death ICU death confirmed", "Death"),
+
+            # DISABILITY cases
+            ("permanent disability paralysis unable to walk persistent neurological deficit disability", "Disability"),
+            ("peripheral neuropathy permanent nerve damage disability grade 3 residual deficit", "Disability"),
+            ("patient unable to perform daily activities permanent disability limb weakness", "Disability"),
+            ("disability permanent cognitive impairment memory loss unable to work disability", "Disability"),
+            ("permanent vision loss blindness disability severe disability grade 4", "Disability"),
+            ("stroke permanent hemiplegia disability residual paralysis unable to ambulate", "Disability"),
+            ("permanent hearing loss disability unable to work long term disability", "Disability"),
+            ("spinal cord injury permanent disability wheelchair bound residual deficit", "Disability"),
+            ("severe peripheral neuropathy permanent disability unable to walk grade 3 CTCAE", "Disability"),
+            ("permanent renal failure dialysis dependency disability long-term impairment", "Disability"),
+
+            # HOSPITALIZATION cases
+            ("patient admitted hospital emergency hospitalization ICU admission ward admitted", "Hospitalization"),
             ("hospitalised acute kidney injury ICU stay hospital admission required", "Hospitalization"),
+            ("emergency admission hospital required inpatient care hospitalization", "Hospitalization"),
+            ("patient admitted ward observation hospitalization serious adverse event", "Hospitalization"),
+            ("hospital admission required anaphylaxis treatment stabilized discharged", "Hospitalization"),
+            ("ICU admission sepsis inpatient hospitalization required medical care", "Hospitalization"),
+            ("patient hospitalised lactic acidosis admitted stabilized discharged", "Hospitalization"),
+            ("acute pancreatitis hospitalization required admitted gastroenterology ward", "Hospitalization"),
+            ("severe hypoglycemia hospitalization loss of consciousness admitted", "Hospitalization"),
+            ("pneumonia hospital admission required oxygen therapy discharged recovered", "Hospitalization"),
+
+            # OTHER cases
             ("mild rash itching grade 1 resolved no treatment required minor adverse event", "Other"),
-            ("headache dizziness grade 1 adverse event outpatient managed", "Other")
+            ("headache dizziness grade 1 adverse event outpatient managed no hospitalization", "Other"),
+            ("nausea vomiting grade 2 managed outpatient no admission required", "Other"),
+            ("injection site reaction mild swelling no intervention needed minor", "Other"),
+            ("fatigue mild transient no significant adverse event grade 1", "Other"),
+            ("mild fever temperature elevation resolved antipyretics outpatient", "Other"),
+            ("constipation mild adverse event grade 1 managed dietary modification", "Other"),
+            ("mild elevated liver enzymes grade 1 monitoring no treatment required", "Other"),
+            ("skin irritation topical mild grade 1 no serious adverse event", "Other"),
+            ("insomnia mild adverse event managed no hospitalization grade 1", "Other"),
         ]
         c.executemany("INSERT INTO training_data (text, label) VALUES (?, ?)", training_samples)
         conn.commit()
@@ -539,10 +577,19 @@ class NaiveBayesClassifier:
         self.pipeline.fit(texts, labels)
         self.is_trained = True
         print(f"[OK] Naive Bayes trained on {len(texts)} samples")
-        # Cross-validation accuracy
-        if len(texts) >= 5:
-            scores = cross_val_score(self.pipeline, texts, labels, cv=min(5, len(texts)//2))
-            print(f"[OK] Cross-validation accuracy: {scores.mean():.2%} ± {scores.std():.2%}")
+        # Cross-validation accuracy (with safety check)
+        try:
+            # Count samples per class
+            from collections import Counter
+            counts = Counter(labels)
+            min_samples = min(counts.values()) if counts else 0
+            
+            if len(texts) >= 5 and min_samples >= 2:
+                cv_folds = min(5, min_samples)
+                scores = cross_val_score(self.pipeline, texts, labels, cv=cv_folds)
+                print(f"[OK] Cross-validation accuracy ({cv_folds} folds): {scores.mean():.2%} ± {scores.std():.2%}")
+        except Exception as e:
+            print(f"[DEBUG] Skipping cross-validation: {e}")
         return True
 
     def classify(self, text):
