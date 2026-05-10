@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReguAI — CDSCO Document Intelligence</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚕</div>
+    Regu<span>AI</span>
+    <span class="algo-badge">TF-IDF + Naive Bayes</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="status-dot"></div>
+    <span class="badge">CDSCO · Local ML · No API Key</span>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <button class="module-btn active" onclick="showSection('home')" id="btn-home">
+        <span class="icon" style="background:rgba(59,130,246,0.15)">🏠</span> Dashboard
+      </button>
+      <button class="module-btn" onclick="showSection('history')" id="btn-history">
+        <span class="icon" style="background:rgba(100,116,139,0.15)">📋</span> History
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Modules</div>
+      <button class="module-btn" onclick="showSection('anon')" id="btn-anon">
+        <span class="icon icon-anon">🔒</span> Anonymisation
+      </button>
+      <button class="module-btn" onclick="showSection('sum')" id="btn-sum">
+        <span class="icon icon-sum">📝</span> Summarisation
+      </button>
+      <button class="module-btn" onclick="showSection('comp')" id="btn-comp">
+        <span class="icon icon-comp">✅</span> Completeness Check
+      </button>
+      <button class="module-btn" onclick="showSection('class')" id="btn-class">
+        <span class="icon icon-class">🚨</span> Severity Classification
+      </button>
+    </div>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Full Pipeline</div>
+      <button class="module-btn" onclick="showSection('pipeline')" id="btn-pipeline">
+        <span class="icon icon-full">⚡</span> Run All Modules
+      </button>
+    </div>
+  </nav>
+
+  <main class="main">
+
+    <!-- HOME -->
+    <section class="section active" id="home">
+      <div class="section-header">
+        <div class="section-title">Welcome to ReguAI <span class="version-badge">Local ML v2.0</span></div>
+        <p class="section-sub">Runs 100% on your laptop. No API key. No internet needed. Powered by TF-IDF + Multinomial Naive Bayes classifier and extractive NLP summarisation.</p>
+      </div>
+      <div class="algo-info-grid">
+        <div class="algo-card">
+          <div class="algo-icon">🔢</div>
+          <div class="algo-name">TF-IDF</div>
+          <div class="algo-desc">Term Frequency-Inverse Document Frequency — weights medical terms by importance across all documents</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">📊</div>
+          <div class="algo-name">Naive Bayes</div>
+          <div class="algo-desc">Multinomial Naive Bayes — probabilistic classifier trained on CDSCO SAE patterns with Laplace smoothing</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">🔍</div>
+          <div class="algo-name">NER + Regex</div>
+          <div class="algo-desc">Named Entity Recognition using pattern matching for PII/PHI detection in Indian medical documents</div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">🗄️</div>
+          <div class="algo-name">SQLite DB</div>
+          <div class="algo-desc">Local database stores all documents, results, and training data — fully offline, no cloud needed</div>
+        </div>
+      </div>
+      <div class="card" style="border-color:rgba(59,130,246,0.2)">
+        <div class="card-title"><span class="dot dot-green"></span> Quick Start</div>
+        <ol style="font-size:0.85rem;color:var(--muted2);line-height:2.2;padding-left:1.2rem">
+          <li>Server is already running — no setup needed</li>
+          <li>Choose a module from the sidebar</li>
+          <li>Load a sample or paste your document text</li>
+          <li>Click Run — results are instant and saved to database</li>
+        </ol>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="showSection('pipeline')">⚡ Run Full Pipeline</button>
+          <button class="btn btn-ghost" onclick="showSection('history')">📋 View History</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANONYMISATION -->
+    <section class="section" id="anon">
+      <div class="section-header">
+        <div class="section-title" style="color:#c4b5fd">🔒 Anonymisation — NER + Regex</div>
+        <p class="section-sub">Detects patient names, phones, emails, hospital names, dates, and addresses using Named Entity Recognition patterns and Indian medical document regex rules.</p>
+      </div>
+      <div class="sample-chips">
+        <span style="font-size:0.75rem;color:var(--muted);padding:4px 0">Load sample:</span>
+        <span class="sample-chip" onclick="loadSample('anon',0)">SAE Report</span>
+        <span class="sample-chip" onclick="loadSample('anon',1)">Clinical Trial</span>
+        <span class="sample-chip" onclick="loadSample('anon',2)">Drug Approval</span>
+      </div>
+      <textarea class="text-input-area" id="anon-input" placeholder="Paste medical document text here…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runModule('anon')">🔒 Anonymise Document</button>
+        <button class="btn btn-ghost" onclick="clearSec('anon')">Clear</button>
+      </div>
+      <div class="loader" id="anon-loader"><div class="spinner"></div> Running NER detection…</div>
+      <div class="card" style="margin-top:1rem" id="anon-out-card" style="display:none">
+        <div class="card-title"><span class="dot dot-purple"></span> Anonymised Output</div>
+        <div class="output-box" id="anon-output"><span class="output-placeholder">Anonymised text will appear here…</span></div>
+      </div>
+      <div class="card" id="anon-entities-card" style="display:none">
+        <div class="card-title"><span class="dot dot-purple"></span> Detected Entities</div>
+        <div id="anon-entities"></div>
+      </div>
+    </section>
+
+    <!-- SUMMARISATION -->
+    <section class="section" id="sum">
+      <div class="section-header">
+        <div class="section-title" style="color:#67e8f9">📝 Summarisation — TF-IDF Extractive</div>
+        <p class="section-sub">Scores each sentence using TF-IDF weights. Top-scoring sentences with position bonuses are extracted to form a reviewer-ready summary — no generative AI needed.</p>
+      </div>
+      <div class="sample-chips">
+        <span style="font-size:0.75rem;color:var(--muted);padding:4px 0">Load sample:</span>
+        <span class="sample-chip" onclick="loadSample('sum',0)">SAE Report</span>
+        <span class="sample-chip" onclick="loadSample('sum',1)">Clinical Trial</span>
+        <span class="sample-chip" onclick="loadSample('sum',2)">Drug Review</span>
+      </div>
+      <textarea class="text-input-area" id="sum-input" placeholder="Paste a long clinical or regulatory document here…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runModule('sum')">📝 Generate Summary</button>
+        <button class="btn btn-ghost" onclick="clearSec('sum')">Clear</button>
+      </div>
+      <div class="loader" id="sum-loader"><div class="spinner"></div> Running TF-IDF sentence scoring…</div>
+      <div class="card" style="margin-top:1rem">
+        <div class="card-title"><span class="dot dot-cyan"></span> Reviewer Summary</div>
+        <div class="output-box" id="sum-output" style="font-family:var(--body);font-size:0.88rem"><span class="output-placeholder">Summary will appear here…</span></div>
+      </div>
+      <div id="sum-bullets-card" style="display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot dot-cyan"></span> Key Sentences</div>
+          <div id="sum-bullets"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPLETENESS -->
+    <section class="section" id="comp">
+      <div class="section-header">
+        <div class="section-title" style="color:#fcd34d">✅ Completeness Checker — Rule-Based</div>
+        <p class="section-sub">Checks 16 mandatory CDSCO SAE fields using regex patterns and keyword rules. Calculates a compliance score and recommends approve, return, or reject.</p>
+      </div>
+      <div class="sample-chips">
+        <span style="font-size:0.75rem;color:var(--muted);padding:4px 0">Load sample:</span>
+        <span class="sample-chip" onclick="loadSample('comp',0)">Incomplete SAE</span>
+        <span class="sample-chip" onclick="loadSample('comp',1)">Complete Report</span>
+        <span class="sample-chip" onclick="loadSample('comp',2)">Drug Approval</span>
+      </div>
+      <textarea class="text-input-area" id="comp-input" placeholder="Paste CDSCO form or SAE report to check…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runModule('comp')">✅ Check Completeness</button>
+        <button class="btn btn-ghost" onclick="clearSec('comp')">Clear</button>
+      </div>
+      <div class="loader" id="comp-loader"><div class="spinner"></div> Running rule-based field check…</div>
+      <div id="comp-results" style="margin-top:1rem;display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot dot-gold"></span> Compliance Score</div>
+          <div id="comp-score-bar"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot dot-gold"></span> Field Status (16 Mandatory Fields)</div>
+          <div id="comp-chips"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot dot-gold"></span> Reviewer Notes</div>
+          <div class="output-box" id="comp-notes" style="font-family:var(--body);font-size:0.85rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CLASSIFICATION -->
+    <section class="section" id="class">
+      <div class="section-header">
+        <div class="section-title" style="color:#fca5a5">🚨 Severity — TF-IDF + Naive Bayes</div>
+        <p class="section-sub">Multinomial Naive Bayes classifier trained on CDSCO SAE patterns using TF-IDF features (unigrams + bigrams + trigrams). Classifies: Death, Disability, Hospitalisation, Other.</p>
+      </div>
+      <div class="sample-chips">
+        <span style="font-size:0.75rem;color:var(--muted);padding:4px 0">Load sample:</span>
+        <span class="sample-chip" onclick="loadSample('class',0)">Death Case</span>
+        <span class="sample-chip" onclick="loadSample('class',1)">Disability Case</span>
+        <span class="sample-chip" onclick="loadSample('class',2)">Hospitalisation</span>
+      </div>
+      <textarea class="text-input-area" id="class-input" placeholder="Paste SAE report or adverse event description here…"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runModule('class')">🚨 Classify Severity</button>
+        <button class="btn btn-ghost" onclick="clearSec('class')">Clear</button>
+      </div>
+      <div class="loader" id="class-loader"><div class="spinner"></div> Running Naive Bayes classifier…</div>
+      <div id="class-results" style="margin-top:1rem;display:none">
+        <div class="card">
+          <div class="card-title"><span class="dot dot-red"></span> Classification Result</div>
+          <div id="class-badge" style="margin-bottom:1rem"></div>
+          <div id="class-score-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><span class="dot dot-red"></span> Model Reasoning</div>
+          <div class="output-box" id="class-reason" style="font-family:var(--body);font-size:0.85rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PIPELINE -->
+    <section class="section" id="pipeline">
+      <div class="section-header">
+        <div class="section-title" style="color:#6ee7b7">⚡ Full Pipeline — All 4 Modules</div>
+        <p class="section-sub">Runs all four ML models sequentially and saves everything to the local SQLite database. All processing happens on your laptop — no internet required.</p>
+      </div>
+      <div class="sample-chips">
+        <span style="font-size:0.75rem;color:var(--muted);padding:4px 0">Load sample:</span>
+        <span class="sample-chip" onclick="loadSample('pipe',0)">Full SAE Report</span>
+        <span class="sample-chip" onclick="loadSample('pipe',1)">Drug Approval</span>
+        <span class="sample-chip" onclick="loadSample('pipe',2)">Clinical Trial</span>
+      </div>
+      <textarea class="text-input-area" id="pipe-input" placeholder="Paste your complete regulatory document here…" style="min-height:200px"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runPipeline()" id="pipe-btn">⚡ Run Full Pipeline</button>
+        <button class="btn btn-ghost" onclick="clearSec('pipe')">Clear</button>
+      </div>
+      <div class="steps-track" id="pipe-steps" style="display:none;margin-top:1.5rem">
+        <div class="step-item" id="step-anon"><div class="step-circle">1</div><div class="step-label">Anonymise</div></div>
+        <div class="step-item" id="step-sum"><div class="step-circle">2</div><div class="step-label">Summarise</div></div>
+        <div class="step-item" id="step-comp"><div class="step-circle">3</div><div class="step-label">Completeness</div></div>
+        <div class="step-item" id="step-class"><div class="step-circle">4</div><div class="step-label">Classify</div></div>
+      </div>
+      <div id="pipe-results" style="display:none">
+        <div class="pipeline-grid">
+          <div class="card">
+            <div class="card-title"><span class="dot dot-purple"></span> Anonymised Document</div>
+            <div class="output-box" id="pipe-anon-out" style="max-height:200px;overflow-y:auto;font-size:0.77rem"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot dot-cyan"></span> TF-IDF Summary</div>
+            <div class="output-box" id="pipe-sum-out" style="max-height:200px;overflow-y:auto;font-family:var(--body);font-size:0.83rem"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot dot-gold"></span> Compliance Check</div>
+            <div id="pipe-comp-chips"></div>
+            <div class="output-box" id="pipe-comp-score" style="font-size:0.78rem;margin-top:0.5rem"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><span class="dot dot-red"></span> Naive Bayes Severity</div>
+            <div id="pipe-sev-badge" style="margin-bottom:0.7rem"></div>
+            <div id="pipe-sev-bars"></div>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(16,185,129,0.25)">
+          <div class="card-title"><span class="dot dot-green"></span> Reviewer Action Required</div>
+          <div class="output-box" id="pipe-action" style="font-family:var(--body);font-size:0.85rem"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="section" id="history">
+      <div class="section-header">
+        <div class="section-title">📋 Document History</div>
+        <p class="section-sub">All processed documents are saved to the local SQLite database. Results persist across sessions.</p>
+      </div>
+      <div class="btn-row" style="margin-bottom:1rem">
+        <button class="btn btn-primary" onclick="loadHistory()">🔄 Refresh History</button>
+      </div>
+      <div id="history-table"></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="/static/js/samples.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
