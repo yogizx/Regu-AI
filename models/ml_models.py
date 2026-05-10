@@ -448,15 +448,87 @@ class NaiveBayesClassifier:
         self.is_trained = False
 
     def load_training_data(self):
-        """Load training samples from SQLite database."""
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute("SELECT text, label FROM training_data")
-        rows = c.fetchall()
-        conn.close()
+        """Load training samples from SQLite database. Initializes if empty."""
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            c.execute("SELECT text, label FROM training_data")
+            rows = c.fetchall()
+            conn.close()
+        except sqlite3.OperationalError:
+            # Table missing - initialize
+            print("[ReguAI] Database tables missing. Initialising...")
+            self._init_db()
+            return self.load_training_data()
+
+        if not rows:
+            # Table exists but empty - seed
+            print("[ReguAI] Training data empty. Seeding...")
+            self._init_db()
+            return self.load_training_data()
+
         texts = [r[0] for r in rows]
         labels = [r[1] for r in rows]
         return texts, labels
+
+    def _init_db(self):
+        """Create and seed database tables."""
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.executescript("""
+            CREATE TABLE IF NOT EXISTS documents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                filename TEXT, raw_text TEXT,
+                upload_time DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS anonymisation_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER, anon_text TEXT, entities_json TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(document_id) REFERENCES documents(id)
+            );
+            CREATE TABLE IF NOT EXISTS summarisation_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER, summary TEXT, key_points TEXT, urgency TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(document_id) REFERENCES documents(id)
+            );
+            CREATE TABLE IF NOT EXISTS completeness_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER, score INTEGER, missing_fields TEXT,
+                present_fields TEXT, recommendation TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(document_id) REFERENCES documents(id)
+            );
+            CREATE TABLE IF NOT EXISTS classification_results (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                document_id INTEGER, label TEXT,
+                confidence_death REAL, confidence_disability REAL,
+                confidence_hospitalization REAL, confidence_other REAL,
+                priority TEXT, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(document_id) REFERENCES documents(id)
+            );
+            CREATE TABLE IF NOT EXISTS training_data (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL, label TEXT NOT NULL
+            );
+        """)
+        
+        training_samples = [
+            ("patient found unresponsive cardiac arrest death pronounced dead post-mortem fatal outcome", "Death"),
+            ("patient died following severe adverse reaction fatal", "Death"),
+            ("death reported acute myocardial infarction patient expired hospital mortality", "Death"),
+            ("permanent disability paralysis unable to walk persistent neurological deficit", "Disability"),
+            ("peripheral neuropathy permanent nerve damage disability grade 3", "Disability"),
+            ("patient admitted hospital emergency hospitalization ICU admission ward", "Hospitalization"),
+            ("hospitalised acute kidney injury ICU stay hospital admission required", "Hospitalization"),
+            ("mild rash itching grade 1 resolved no treatment required minor adverse event", "Other"),
+            ("headache dizziness grade 1 adverse event outpatient managed", "Other")
+        ]
+        c.executemany("INSERT INTO training_data (text, label) VALUES (?, ?)", training_samples)
+        conn.commit()
+        conn.close()
+        print("[ReguAI] Database initialised and seeded.")
 
     def train(self):
         """Train TF-IDF + Naive Bayes on database samples."""
